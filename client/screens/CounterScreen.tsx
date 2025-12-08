@@ -1,29 +1,94 @@
-import React, { useState } from "react";
-import { View, Text, StyleSheet, Pressable } from "react-native";
+import React, { useState, useEffect, useCallback } from "react";
+import { View, Text, StyleSheet, Pressable, Alert } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useRoute, RouteProp } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Haptics from "expo-haptics";
 import { Spacing } from "@/constants/theme";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
 } from "react-native-reanimated";
+import { RootStackParamList } from "@/navigation/RootStackNavigator";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
+type CounterScreenRouteProp = RouteProp<RootStackParamList, "Counter">;
+
+const getStorageKey = (dhikrText: string) => `dhikr_count_${dhikrText}`;
+
 export default function CounterScreen() {
   const insets = useSafeAreaInsets();
+  const route = useRoute<CounterScreenRouteProp>();
+  const { dhikrText } = route.params;
+  
   const [count, setCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
   const plusScale = useSharedValue(1);
   const minusScale = useSharedValue(1);
+  const resetScale = useSharedValue(1);
 
-  const handleIncrement = () => {
-    setCount((prev) => prev + 1);
+  useEffect(() => {
+    loadCount();
+  }, [dhikrText]);
+
+  const loadCount = async () => {
+    try {
+      const storedCount = await AsyncStorage.getItem(getStorageKey(dhikrText));
+      if (storedCount !== null) {
+        setCount(parseInt(storedCount, 10));
+      }
+    } catch (error) {
+      console.error("Error loading count:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleDecrement = () => {
-    setCount((prev) => Math.max(0, prev - 1));
+  const saveCount = async (newCount: number) => {
+    try {
+      await AsyncStorage.setItem(getStorageKey(dhikrText), newCount.toString());
+    } catch (error) {
+      console.error("Error saving count:", error);
+    }
   };
+
+  const handleIncrement = useCallback(async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const newCount = count + 1;
+    setCount(newCount);
+    saveCount(newCount);
+  }, [count, dhikrText]);
+
+  const handleDecrement = useCallback(async () => {
+    if (count > 0) {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      const newCount = count - 1;
+      setCount(newCount);
+      saveCount(newCount);
+    }
+  }, [count, dhikrText]);
+
+  const handleReset = useCallback(() => {
+    Alert.alert(
+      "Reset Counter",
+      "Are you sure you want to reset this counter to 0?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Reset",
+          style: "destructive",
+          onPress: async () => {
+            await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+            setCount(0);
+            saveCount(0);
+          },
+        },
+      ]
+    );
+  }, [dhikrText]);
 
   const plusAnimatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: plusScale.value }],
@@ -31,6 +96,10 @@ export default function CounterScreen() {
 
   const minusAnimatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: minusScale.value }],
+  }));
+
+  const resetAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: resetScale.value }],
   }));
 
   const handlePlusPressIn = () => {
@@ -48,6 +117,24 @@ export default function CounterScreen() {
   const handleMinusPressOut = () => {
     minusScale.value = withSpring(1);
   };
+
+  const handleResetPressIn = () => {
+    resetScale.value = withSpring(0.95);
+  };
+
+  const handleResetPressOut = () => {
+    resetScale.value = withSpring(1);
+  };
+
+  if (isLoading) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.content}>
+          <Text style={styles.label}>Loading...</Text>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -78,6 +165,15 @@ export default function CounterScreen() {
           onPressOut={handleMinusPressOut}
         >
           <Ionicons name="remove" size={24} color="#FFFFFF" />
+        </AnimatedPressable>
+
+        <AnimatedPressable
+          style={[styles.fab, styles.fabReset, resetAnimatedStyle]}
+          onPress={handleReset}
+          onPressIn={handleResetPressIn}
+          onPressOut={handleResetPressOut}
+        >
+          <Ionicons name="refresh" size={24} color="#FFFFFF" />
         </AnimatedPressable>
       </View>
     </View>
@@ -128,5 +224,8 @@ const styles = StyleSheet.create({
   },
   fabMinus: {
     backgroundColor: "#F44336",
+  },
+  fabReset: {
+    backgroundColor: "#FF9800",
   },
 });
