@@ -66,6 +66,13 @@ export async function incrementDailyCount(dhikrText: string): Promise<number> {
   return newCount;
 }
 
+export async function decrementDailyCount(dhikrText: string): Promise<number> {
+  const current = await getDailyCount(dhikrText);
+  const newCount = Math.max(0, current - 1);
+  await setDailyCount(dhikrText, newCount);
+  return newCount;
+}
+
 export async function getGoal(dhikrText: string): Promise<number> {
   try {
     const stored = await AsyncStorage.getItem(getGoalKey(dhikrText));

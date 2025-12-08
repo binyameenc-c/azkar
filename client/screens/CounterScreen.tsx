@@ -16,6 +16,7 @@ import {
   setCount,
   getDailyCount,
   incrementDailyCount,
+  decrementDailyCount,
   getGoal,
   setGoal,
   addToHistory,
@@ -85,8 +86,14 @@ export default function CounterScreen() {
       const newCount = count - 1;
       setCountState(newCount);
       await setCount(dhikrText, newCount);
+      
+      if (dailyCount > 0) {
+        const newDailyCount = await decrementDailyCount(dhikrText);
+        setDailyCountState(newDailyCount);
+        await addToHistory(dhikrText, newDailyCount);
+      }
     }
-  }, [count, dhikrText]);
+  }, [count, dailyCount, dhikrText]);
 
   const handleReset = useCallback(() => {
     Alert.alert(
