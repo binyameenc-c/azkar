@@ -1,33 +1,38 @@
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import MainTabNavigator from "@/navigation/MainTabNavigator";
-import ModalScreen from "@/screens/ModalScreen";
-import { useScreenOptions } from "@/hooks/useScreenOptions";
+import HomeScreen from "@/screens/HomeScreen";
+import CounterScreen from "@/screens/CounterScreen";
 
 export type RootStackParamList = {
-  Main: undefined;
-  Modal: undefined;
+  Home: undefined;
+  Counter: { dhikrText: string };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function RootStackNavigator() {
-  const screenOptions = useScreenOptions();
-
   return (
-    <Stack.Navigator screenOptions={screenOptions}>
+    <Stack.Navigator>
       <Stack.Screen
-        name="Main"
-        component={MainTabNavigator}
+        name="Home"
+        component={HomeScreen}
         options={{ headerShown: false }}
       />
       <Stack.Screen
-        name="Modal"
-        component={ModalScreen}
-        options={{
-          presentation: "modal",
-          headerTitle: "Modal",
-        }}
+        name="Counter"
+        component={CounterScreen}
+        options={({ route }) => ({
+          headerTitle: route.params.dhikrText,
+          headerTintColor: "#4CAF50",
+          headerStyle: {
+            backgroundColor: "#FFFFFF",
+          },
+          headerTitleStyle: {
+            color: "#4CAF50",
+            fontSize: 18,
+            fontWeight: "600",
+          },
+        })}
       />
     </Stack.Navigator>
   );
