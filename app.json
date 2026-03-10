@@ -39,7 +39,19 @@
           }
         }
       ],
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "enableProguardInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true,
+            "extraBuildProperties": {
+              "reactNativeArchitectures": "armeabi-v7a,arm64-v8a"
+            }
+          }
+        }
+      ]
     ],
     "experiments": {
       "reactCompiler": true
